@@ -23,6 +23,7 @@ import org.junit.runners.model.Statement;
 import org.robolectric.android.AndroidInterceptors;
 import org.robolectric.annotation.Config;
 import org.robolectric.internal.AndroidConfigurer;
+import org.robolectric.internal.AndroidSandbox;
 import org.robolectric.internal.BuckManifestFactory;
 import org.robolectric.internal.DefaultManifestFactory;
 import org.robolectric.internal.ManifestFactory;
@@ -31,7 +32,6 @@ import org.robolectric.internal.MavenManifestFactory;
 import org.robolectric.internal.SandboxFactory;
 import org.robolectric.internal.SandboxTestRunner;
 import org.robolectric.internal.SdkConfig;
-import org.robolectric.internal.SdkEnvironment;
 import org.robolectric.internal.ShadowProvider;
 import org.robolectric.internal.bytecode.ClassHandler;
 import org.robolectric.internal.bytecode.InstrumentationConfiguration;
@@ -51,7 +51,7 @@ import org.robolectric.util.inject.Injector;
  * Android runtime environment.
  */
 @SuppressWarnings("NewApi")
-public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
+public class RobolectricTestRunner extends SandboxTestRunner<AndroidSandbox> {
 
   public static final String CONFIG_PROPERTIES = "robolectric.properties";
 
@@ -129,7 +129,7 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
    */
   @Override
   @Nonnull
-  protected ClassHandler createClassHandler(ShadowMap shadowMap, SdkEnvironment sandbox) {
+  protected ClassHandler createClassHandler(ShadowMap shadowMap, AndroidSandbox sandbox) {
     return new ShadowWrangler(shadowMap, sandbox.getSdkConfig().getApiLevel(), getInterceptors());
   }
 
@@ -160,15 +160,15 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
   }
 
   @Override
-  protected void configureSandbox(SdkEnvironment sdkEnvironment, FrameworkMethod method) {
+  protected void configureSandbox(AndroidSandbox androidSandbox, FrameworkMethod method) {
     RobolectricFrameworkMethod roboMethod = (RobolectricFrameworkMethod) method;
-    roboMethod.testStarted(sdkEnvironment);
+    roboMethod.testStarted(androidSandbox);
 //    boolean isLegacy = roboMethod.isLegacy();
-//    roboMethod.parallelUniverseInterface = getHooksInterface(sdkEnvironment);
+//    roboMethod.parallelUniverseInterface = getHooksInterface(androidSandbox);
 //    roboMethod.parallelUniverseInterface.setSdkConfig(roboMethod.sdkConfig);
 //    roboMethod.parallelUniverseInterface.setResourcesMode(isLegacy);
 
-    super.configureSandbox(sdkEnvironment, method);
+    super.configureSandbox(androidSandbox, method);
   }
 
   /**
@@ -264,15 +264,15 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
 
   @Override
   @Nonnull
-  protected SdkEnvironment getSandbox(FrameworkMethod method) {
+  protected AndroidSandbox getSandbox(FrameworkMethod method) {
     RobolectricFrameworkMethod roboMethod = (RobolectricFrameworkMethod) method;
     SdkConfig sdkConfig = roboMethod.sdkConfig;
-    return ctx.sandboxFactory.getSdkEnvironment(
+    return ctx.sandboxFactory.getSandbox(
         createClassLoaderConfig(method), sdkConfig, roboMethod.isLegacy());
   }
 
   @Override
-  protected void beforeTest(SdkEnvironment sdkEnvironment, FrameworkMethod method, Method bootstrappedMethod) throws Throwable {
+  protected void beforeTest(AndroidSandbox androidSandbox, FrameworkMethod method, Method bootstrappedMethod) throws Throwable {
     RobolectricFrameworkMethod roboMethod = (RobolectricFrameworkMethod) method;
 
     PerfStatsCollector perfStatsCollector = PerfStatsCollector.getInstance();
@@ -293,10 +293,10 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
           "[Robolectric] NOTICE: legacy resources mode is deprecated; see http://robolectric.org/migrating/#migrating-to-40");
     }
 
-    Class<TestLifecycle> cl = sdkEnvironment.bootstrappedClass(getTestLifecycleClass());
+    Class<TestLifecycle> cl = androidSandbox.bootstrappedClass(getTestLifecycleClass());
     roboMethod.testLifecycle = ReflectionHelpers.newInstance(cl);
 
-    sdkEnvironment.initialize(roboMethod);
+    androidSandbox.initialize(roboMethod);
 
     roboMethod.testLifecycle.beforeTest(bootstrappedMethod);
   }
@@ -304,11 +304,11 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
   @Override
   protected void afterTest(FrameworkMethod method, Method bootstrappedMethod) {
     RobolectricFrameworkMethod roboMethod = (RobolectricFrameworkMethod) method;
-    SdkEnvironment sdkEnvironment = roboMethod.sdkEnvironment;
+    AndroidSandbox androidSandbox = roboMethod.androidSandbox;
 
-    // todo; shouldn't afterTest happen before sdkEnvironment.tearDown()?
+    // todo; shouldn't afterTest happen before androidSandbox.tearDown()?
     try {
-      sdkEnvironment.tearDown();
+      androidSandbox.tearDown();
     } finally {
       roboMethod.testLifecycle.afterTest(bootstrappedMethod);
     }
@@ -327,7 +327,7 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
     try {
       // reset static state afterward too, so statics don't defeat GC?
       PerfStatsCollector.getInstance()
-          .measure("reset Android state (after test)", roboMethod.sdkEnvironment::reset);
+          .measure("reset Android state (after test)", roboMethod.androidSandbox::reset);
     } finally {
       roboMethod.onTestFinished();
     }
@@ -483,7 +483,7 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
 
     @Override protected Object createTest() throws Exception {
       RobolectricFrameworkMethod roboMethod = (RobolectricFrameworkMethod) this.frameworkMethod;
-      return roboMethod.sdkEnvironment.executeSynchronously(() -> {
+      return roboMethod.androidSandbox.executeSynchronously(() -> {
         Object test = super.createTest();
         roboMethod.testLifecycle.prepareTest(test);
         return test;
@@ -498,7 +498,7 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
         @Override
         public void evaluate() throws Throwable {
           Throwable[] ts = new Throwable[1];
-          roboMethod.sdkEnvironment.executeSynchronously(() -> {
+          roboMethod.androidSandbox.executeSynchronously(() -> {
             try {
               statement.evaluate();
             } catch (Throwable t) {
@@ -516,14 +516,14 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
 
   /**
    * Description of the requested configuration for a single run instance of a specific test method.
-   * There may be more than one per unique {@link Method}. An {@link SdkEnvironment} satisfying the
+   * There may be more than one per unique {@link Method}. An {@link AndroidSandbox} satisfying the
    * configuration will be found or created when this test is run by JUnit.
    *
-   * This class shouldn't retain any references to the SdkEnvironment or any classes defined by it
-   * before {@link #testStarted(SdkEnvironment)} is called, or after {@link #onTestFinished()}
+   * This class shouldn't retain any references to the AndroidSandbox or any classes defined by it
+   * before {@link #testStarted(AndroidSandbox)} is called, or after {@link #onTestFinished()}
    * is called.
    */
-  static class RobolectricFrameworkMethod extends FrameworkMethod implements SdkEnvironment.MethodConfig {
+  static class RobolectricFrameworkMethod extends FrameworkMethod implements AndroidSandbox.MethodConfig {
     private final @Nonnull AndroidManifest appManifest;
     final @Nonnull SdkConfig sdkConfig;
     final @Nonnull Config config;
@@ -533,7 +533,7 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
 
     private boolean includeVariantMarkersInTestName = true;
     TestLifecycle testLifecycle;
-    SdkEnvironment sdkEnvironment;
+    AndroidSandbox androidSandbox;
 
     RobolectricFrameworkMethod(
         @Nonnull Method method,
@@ -552,12 +552,12 @@ public class RobolectricTestRunner extends SandboxTestRunner<SdkEnvironment> {
       this.alwaysIncludeVariantMarkersInName = alwaysIncludeVariantMarkersInName;
     }
 
-    void testStarted(SdkEnvironment sdkEnvironment) {
-      this.sdkEnvironment = sdkEnvironment;
+    void testStarted(AndroidSandbox androidSandbox) {
+      this.androidSandbox = androidSandbox;
     }
 
     void onTestFinished() {
-      this.sdkEnvironment = null;
+      this.androidSandbox = null;
       this.testLifecycle = null;
     }
 
