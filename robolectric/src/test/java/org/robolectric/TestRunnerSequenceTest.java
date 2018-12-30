@@ -23,8 +23,8 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.internal.DoNotInstrument;
+import org.robolectric.internal.SdkEnvironment;
 import org.robolectric.internal.bytecode.InstrumentationConfiguration;
-import org.robolectric.internal.bytecode.Sandbox;
 import org.robolectric.manifest.AndroidManifest;
 import org.robolectric.pluginapi.SdkPicker;
 import org.robolectric.plugins.DefaultSdkPicker;
@@ -109,8 +109,8 @@ public class TestRunnerSequenceTest {
         super.finallyAfterTest(method);
 
         RobolectricFrameworkMethod roboMethod = (RobolectricFrameworkMethod) method;
-        assertThat(roboMethod.parallelUniverseInterface).isNull();
         assertThat(roboMethod.testLifecycle).isNull();
+        assertThat(roboMethod.sdkEnvironment).isNull();
         methods.add(roboMethod);
       }
     };
@@ -170,9 +170,10 @@ public class TestRunnerSequenceTest {
       return MyTestLifecycle.class;
     }
 
-    @Override protected void configureSandbox(Sandbox sandbox, FrameworkMethod frameworkMethod) {
+    @Override
+    protected void configureSandbox(SdkEnvironment sdkEnvironment, FrameworkMethod method) {
       StateHolder.transcript.add("configureSandbox");
-      super.configureSandbox(sandbox, frameworkMethod);
+      super.configureSandbox(sdkEnvironment, method);
     }
   }
 
