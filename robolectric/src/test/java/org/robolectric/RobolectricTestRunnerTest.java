@@ -138,7 +138,7 @@ public class RobolectricTestRunnerTest {
         new RobolectricFrameworkMethod(
             method,
             mock(AndroidManifest.class),
-            sdkProvider.getSdkConfig(16),
+            sdkProvider.getSdk(16),
             mock(Config.class),
             ResourcesMode.legacy,
             ResourcesMode.legacy,
@@ -147,7 +147,7 @@ public class RobolectricTestRunnerTest {
         new RobolectricFrameworkMethod(
             method,
             mock(AndroidManifest.class),
-            sdkProvider.getSdkConfig(17),
+            sdkProvider.getSdk(17),
             mock(Config.class),
             ResourcesMode.legacy,
             ResourcesMode.legacy,
@@ -156,7 +156,7 @@ public class RobolectricTestRunnerTest {
         new RobolectricFrameworkMethod(
             method,
             mock(AndroidManifest.class),
-            sdkProvider.getSdkConfig(16),
+            sdkProvider.getSdk(16),
             mock(Config.class),
             ResourcesMode.legacy,
             ResourcesMode.legacy,
@@ -165,7 +165,7 @@ public class RobolectricTestRunnerTest {
         new RobolectricFrameworkMethod(
             method,
             mock(AndroidManifest.class),
-            sdkProvider.getSdkConfig(16),
+            sdkProvider.getSdk(16),
             mock(Config.class),
             ResourcesMode.binary,
             ResourcesMode.legacy,
@@ -318,7 +318,7 @@ public class RobolectricTestRunnerTest {
     private static final Injector INJECTOR = defaultInjector()
         .register(SdkPicker.class,
             new DefaultSdkPicker(SDK_PROVIDER,
-                singletonList(SDK_PROVIDER.getMaxKnownSdkConfig()), null));
+                singletonList(SDK_PROVIDER.getMaxKnownSdk()), null));
 
     MyRobolectricTestRunner(Class<?> testClass) throws InitializationError {
       super(testClass, INJECTOR);
