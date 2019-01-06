@@ -4,27 +4,39 @@ import static org.robolectric.util.ReflectionHelpers.newInstance;
 import static org.robolectric.util.ReflectionHelpers.setStaticField;
 
 import java.util.Set;
+import org.robolectric.sandbox.UrlResourceProvider;
 import org.robolectric.shadow.api.Shadow;
 
+/**
+ * A Sandbox represents an isolated execution environment with instrumented classes.
+ */
 public class Sandbox {
-  private final ClassLoader robolectricClassLoader;
+  private final ClassLoader sandboxClassLoader;
   private ShadowInvalidator shadowInvalidator;
   public ClassHandler classHandler; // todo not public
   private ShadowMap shadowMap = ShadowMap.EMPTY;
 
-  public Sandbox(ClassLoader robolectricClassLoader) {
-    this.robolectricClassLoader = robolectricClassLoader;
+  public Sandbox(InstrumentationConfiguration instrumentationConfiguration,
+      UrlResourceProvider resourceProvider) {
+    this.sandboxClassLoader = new SandboxClassLoader(
+        ClassLoader.getSystemClassLoader(),
+        instrumentationConfiguration,
+        resourceProvider);
+  }
+
+  protected ClassLoader getClassLoader() {
+    return sandboxClassLoader;
   }
 
   public <T> Class<T> bootstrappedClass(Class<?> clazz) {
     try {
-      return (Class<T>) robolectricClassLoader.loadClass(clazz.getName());
+      return (Class<T>) sandboxClassLoader.loadClass(clazz.getName());
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
   public ClassLoader getRobolectricClassLoader() {
-    return robolectricClassLoader;
+    return sandboxClassLoader;
   }
 
   private ShadowInvalidator getShadowInvalidator() {

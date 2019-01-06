@@ -44,12 +44,14 @@ import org.robolectric.internal.AndroidSandbox;
 import org.robolectric.internal.Bridge;
 import org.robolectric.internal.SandboxFactory;
 import org.robolectric.internal.SdkConfig;
+import org.robolectric.internal.bytecode.InstrumentationConfiguration;
 import org.robolectric.internal.dependency.DependencyResolver;
 import org.robolectric.manifest.AndroidManifest;
 import org.robolectric.pluginapi.SdkPicker;
 import org.robolectric.pluginapi.SdkProvider;
 import org.robolectric.plugins.DefaultSdkPicker;
 import org.robolectric.plugins.DefaultSdkProvider;
+import org.robolectric.sandbox.UrlResourceProvider;
 import org.robolectric.util.PerfStatsCollector.Metric;
 import org.robolectric.util.PerfStatsReporter;
 import org.robolectric.util.TempDirectory;
@@ -339,9 +341,12 @@ public class RobolectricTestRunnerTest {
     }
 
     @Override
-    protected AndroidSandbox createSandbox(SdkConfig sdkConfig, boolean useLegacyResources,
-        ClassLoader robolectricClassLoader) {
-      return new AndroidSandbox(sdkConfig, useLegacyResources, robolectricClassLoader, apkLoader) {
+    protected AndroidSandbox createSandbox(
+        InstrumentationConfiguration instrumentationConfig, SdkConfig sdkConfig,
+        boolean useLegacyResources) {
+      UrlResourceProvider resourceProvider = new UrlResourceProvider();
+      return new AndroidSandbox(instrumentationConfig, resourceProvider, sdkConfig,
+          useLegacyResources, apkLoader) {
         @Override
         protected Bridge getBridge() {
           Bridge mockBridge = mock(Bridge.class);

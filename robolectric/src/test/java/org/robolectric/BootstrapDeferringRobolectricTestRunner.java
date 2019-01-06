@@ -21,6 +21,7 @@ import org.robolectric.internal.bytecode.InstrumentationConfiguration.Builder;
 import org.robolectric.internal.dependency.DependencyResolver;
 import org.robolectric.manifest.AndroidManifest;
 import org.robolectric.pluginapi.SdkProvider;
+import org.robolectric.sandbox.UrlResourceProvider;
 import org.robolectric.util.inject.Injector;
 
 /**
@@ -140,9 +141,11 @@ public class BootstrapDeferringRobolectricTestRunner extends RobolectricTestRunn
     }
 
     @Override
-    protected AndroidSandbox createSandbox(SdkConfig sdkConfig, boolean useLegacyResources,
-        ClassLoader robolectricClassLoader) {
-      return new MyAndroidSandbox(sdkConfig, useLegacyResources, robolectricClassLoader, apkLoader);
+    protected AndroidSandbox createSandbox(
+        InstrumentationConfiguration instrumentationConfig, SdkConfig sdkConfig,
+        boolean useLegacyResources) {
+      return new MyAndroidSandbox(sdkConfig, useLegacyResources, apkLoader,
+          instrumentationConfig);
     }
   }
 
@@ -150,9 +153,10 @@ public class BootstrapDeferringRobolectricTestRunner extends RobolectricTestRunn
 
     private BootstrapWrapper myBootstrapWrapper;
 
-    MyAndroidSandbox(SdkConfig sdkConfig, boolean useLegacyResources, ClassLoader classLoader,
-        ApkLoader apkLoader) {
-      super(sdkConfig, useLegacyResources, classLoader, apkLoader);
+    MyAndroidSandbox(SdkConfig sdkConfig, boolean useLegacyResources,
+        ApkLoader apkLoader, InstrumentationConfiguration instrumentationConfiguration) {
+      super(instrumentationConfiguration, new UrlResourceProvider(), sdkConfig, useLegacyResources, apkLoader
+      );
     }
 
     @Override

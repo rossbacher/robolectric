@@ -2,6 +2,7 @@ package org.robolectric.shadows;
 
 import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
+import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -587,7 +588,7 @@ public class ShadowViewTest {
     assertThat(shadowOf(view).didRequestLayout()).isFalse();
   }
 
-  @Test
+  @Test @Config(sdk = LOLLIPOP_MR1)
   public void shouldClickAndNotClick() throws Exception {
     assertThat(view.isClickable()).isFalse();
     view.setClickable(true);
