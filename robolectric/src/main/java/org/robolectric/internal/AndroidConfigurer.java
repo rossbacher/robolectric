@@ -41,9 +41,7 @@ public class AndroidConfigurer {
   }
 
   public static void configure(InstrumentationConfiguration.Builder builder, Interceptors interceptors) {
-    for (MethodRef methodRef : interceptors.getAllMethodRefs()) {
-      builder.addInterceptedMethod(methodRef);
-    }
+    builder.setInterceptors(interceptors);
 
     builder
         .doNotAcquireClass(TestLifecycle.class)
