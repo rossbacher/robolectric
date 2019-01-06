@@ -256,10 +256,9 @@ public class ParallelUniverse implements ParallelUniverseInterface {
       }
     } else {
       RuntimeEnvironment.compileTimeSystemResourcesFile =
-          apkLoader.getCompileTimeSystemResourcesFile(sdkEnvironment);
+          sdkEnvironment.getCompileTimeSdk().getJarPath();
 
-      RuntimeEnvironment.setAndroidFrameworkJarPath(
-          apkLoader.getArtifactUrl(sdk.getAndroidSdkDependency()).getFile());
+      RuntimeEnvironment.setAndroidFrameworkJarPath(sdk.getJarPath().toString());
 
       Path packageFile = appManifest.getApkFile();
       parsedPackage = ShadowPackageParser.callParsePackage(packageFile);

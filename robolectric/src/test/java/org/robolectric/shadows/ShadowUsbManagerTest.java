@@ -16,19 +16,17 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.hardware.usb.UsbPort;
 import android.hardware.usb.UsbPortStatus;
-import android.os.Build;
-import android.support.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowUsbManager._UsbManager_;
 
@@ -179,7 +177,7 @@ public class ShadowUsbManagerTest {
     return Arrays.asList(_usbManager_().getPorts());
   }
 
-  @NonNull
+  @Nonnull
   private _UsbManager_ _usbManager_() {
     return reflector(_UsbManager_.class, usbManager);
   }
