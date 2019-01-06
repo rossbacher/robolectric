@@ -29,12 +29,21 @@ public class Sandbox {
   }
 
   public <T> Class<T> bootstrappedClass(Class<?> clazz) {
+    return bootstrappedClass(clazz.getName());
+  }
+
+  public <T> Class<T> bootstrappedClass(String className) {
     try {
-      return (Class<T>) sandboxClassLoader.loadClass(clazz.getName());
+      return (Class<T>) sandboxClassLoader.loadClass(className);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
+
+  /**
+   * @deprecated
+   */
+  @Deprecated
   public ClassLoader getRobolectricClassLoader() {
     return sandboxClassLoader;
   }
@@ -58,7 +67,6 @@ public class Sandbox {
   public void configure(ClassHandler classHandler, Interceptors interceptors) {
     this.classHandler = classHandler;
 
-    ClassLoader robolectricClassLoader = getRobolectricClassLoader();
     Class<?> robolectricInternalsClass = bootstrappedClass(RobolectricInternals.class);
     if (InvokeDynamic.ENABLED) {
       ShadowInvalidator invalidator = getShadowInvalidator();
@@ -66,7 +74,7 @@ public class Sandbox {
     }
 
     setStaticField(robolectricInternalsClass, "classHandler", classHandler);
-    setStaticField(robolectricInternalsClass, "classLoader", robolectricClassLoader);
+    setStaticField(robolectricInternalsClass, "classLoader", sandboxClassLoader);
 
     Class<?> invokeDynamicSupportClass = bootstrappedClass(InvokeDynamicSupport.class);
     setStaticField(invokeDynamicSupportClass, "INTERCEPTORS", interceptors);

@@ -7,8 +7,10 @@ import java.lang.annotation.Target;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.concurrent.Callable;
 import javax.annotation.Nonnull;
+import javax.inject.Inject;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.robolectric.annotation.Config;
@@ -130,13 +132,16 @@ public class BootstrapDeferringRobolectricTestRunner extends RobolectricTestRunn
     }
   }
 
-  private static class MySandboxFactory extends SandboxFactory {
+  public static class MySandboxFactory extends SandboxFactory {
 
+    private final DependencyResolver dependencyResolver;
     private final ApkLoader apkLoader;
 
+    @Inject
     public MySandboxFactory(DependencyResolver dependencyResolver,
         SdkProvider sdkProvider, ApkLoader apkLoader) {
       super(dependencyResolver, sdkProvider, apkLoader);
+      this.dependencyResolver = dependencyResolver;
       this.apkLoader = apkLoader;
     }
 
@@ -144,8 +149,11 @@ public class BootstrapDeferringRobolectricTestRunner extends RobolectricTestRunn
     protected AndroidSandbox createSandbox(
         InstrumentationConfiguration instrumentationConfig, SdkConfig sdkConfig,
         boolean useLegacyResources) {
-      return new MyAndroidSandbox(sdkConfig, useLegacyResources, apkLoader,
-          instrumentationConfig);
+      URL[] urls = dependencyResolver.getLocalArtifactUrls(sdkConfig.getAndroidSdkDependency());
+
+      UrlResourceProvider resourceProvider = new UrlResourceProvider(urls);
+      return new MyAndroidSandbox(instrumentationConfig, resourceProvider, sdkConfig,
+          useLegacyResources, apkLoader);
     }
   }
 
@@ -153,9 +161,11 @@ public class BootstrapDeferringRobolectricTestRunner extends RobolectricTestRunn
 
     private BootstrapWrapper myBootstrapWrapper;
 
-    MyAndroidSandbox(SdkConfig sdkConfig, boolean useLegacyResources,
-        ApkLoader apkLoader, InstrumentationConfiguration instrumentationConfiguration) {
-      super(instrumentationConfiguration, new UrlResourceProvider(), sdkConfig, useLegacyResources, apkLoader
+    MyAndroidSandbox(InstrumentationConfiguration instrumentationConfiguration,
+        UrlResourceProvider resourceProvider, SdkConfig sdkConfig,
+        boolean useLegacyResources,
+        ApkLoader apkLoader) {
+      super(instrumentationConfiguration, resourceProvider, sdkConfig, useLegacyResources, apkLoader
       );
     }
 
