@@ -6,31 +6,44 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nonnull;
+import javax.inject.Inject;
 import org.robolectric.internal.bytecode.InstrumentationConfiguration;
 import org.robolectric.internal.bytecode.SandboxClassLoader;
 import org.robolectric.internal.dependency.DependencyResolver;
+import org.robolectric.pluginapi.SdkProvider;
 
 @SuppressLint("NewApi")
 public class SandboxFactory {
-  public static final SandboxFactory INSTANCE = new SandboxFactory();
 
-  /** The factor for cache size. See {@link #CACHE_SIZE} for details. */
+  /** The factor for cache size. See {@link #sdkToEnvironment} for details. */
   private static final int CACHE_SIZE_FACTOR = 3;
 
-  /** We need to set the cache size of class loaders more than the number of supported APIs as different tests may have different configurations. */
-  private static final int CACHE_SIZE = SdkConfig.getSupportedApis().size() * CACHE_SIZE_FACTOR;
+  private final DependencyResolver dependencyResolver;
+  private final SdkProvider sdkProvider;
 
   // Simple LRU Cache. SdkEnvironments are unique across InstrumentationConfiguration and SdkConfig
-  private final LinkedHashMap<SandboxKey, SdkEnvironment> sdkToEnvironment = new LinkedHashMap<SandboxKey, SdkEnvironment>() {
-    @Override
-    protected boolean removeEldestEntry(Map.Entry<SandboxKey, SdkEnvironment> eldest) {
-      return size() > CACHE_SIZE;
-    }
-  };
+  private final LinkedHashMap<SandboxKey, SdkEnvironment> sdkToEnvironment;
+
+  @Inject
+  public SandboxFactory(DependencyResolver dependencyResolver, SdkProvider sdkProvider) {
+    this.dependencyResolver = dependencyResolver;
+    this.sdkProvider = sdkProvider;
+
+    // We need to set the cache size of class loaders more than the number of supported APIs as
+    // different tests may have different configurations.
+    final int cacheSize = sdkProvider.getSupportedSdks().size() * CACHE_SIZE_FACTOR;
+    sdkToEnvironment = new LinkedHashMap<SandboxKey, SdkEnvironment>() {
+      @Override
+      protected boolean removeEldestEntry(Map.Entry<SandboxKey, SdkEnvironment> eldest) {
+        return size() > cacheSize;
+      }
+    };
+  }
 
   public synchronized SdkEnvironment getSdkEnvironment(
-      InstrumentationConfiguration instrumentationConfig, SdkConfig sdkConfig,
-      boolean useLegacyResources, DependencyResolver dependencyResolver) {
+      InstrumentationConfiguration instrumentationConfig,
+      SdkConfig sdkConfig,
+      boolean useLegacyResources) {
     SandboxKey key = new SandboxKey(sdkConfig, instrumentationConfig, useLegacyResources);
 
     SdkEnvironment sdkEnvironment = sdkToEnvironment.get(key);
@@ -45,13 +58,15 @@ public class SandboxFactory {
     return sdkEnvironment;
   }
 
-  protected SdkEnvironment createSdkEnvironment(SdkConfig sdkConfig,
-      ClassLoader robolectricClassLoader) {
-    return new SdkEnvironment(sdkConfig, robolectricClassLoader);
+  protected SdkEnvironment createSdkEnvironment(
+      SdkConfig sdkConfig, ClassLoader robolectricClassLoader) {
+    return new SdkEnvironment(
+        sdkConfig, robolectricClassLoader, sdkProvider.getMaxSupportedSdkConfig());
   }
 
   @Nonnull
-  public ClassLoader createClassLoader(InstrumentationConfiguration instrumentationConfig, URL... urls) {
+  public ClassLoader createClassLoader(
+      InstrumentationConfiguration instrumentationConfig, URL... urls) {
     return new SandboxClassLoader(ClassLoader.getSystemClassLoader(), instrumentationConfig, urls);
   }
 
@@ -60,8 +75,10 @@ public class SandboxFactory {
     private final InstrumentationConfiguration instrumentationConfiguration;
     private final boolean useLegacyResources;
 
-    public SandboxKey(SdkConfig sdkConfig,
-        InstrumentationConfiguration instrumentationConfiguration, boolean useLegacyResources) {
+    public SandboxKey(
+        SdkConfig sdkConfig,
+        InstrumentationConfiguration instrumentationConfiguration,
+        boolean useLegacyResources) {
       this.sdkConfig = sdkConfig;
       this.instrumentationConfiguration = instrumentationConfiguration;
       this.useLegacyResources = useLegacyResources;
